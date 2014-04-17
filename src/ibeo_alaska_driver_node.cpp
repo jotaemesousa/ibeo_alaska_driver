@@ -20,4 +20,6 @@ int main(int argc, char *argv[])
         ROS_INFO("IBEO_ALASKA_DRIVER: Successfuly connected");
     }
 
+
+
 }

@@ -10,9 +10,11 @@
 
 #ifndef _LASERIBEO_H
 #define _LASERIBEO_H
-#include <iostream>
 
+#include <iostream>
+#include <ros/ros.h>
 #include "LaserRead.h"
+#include "sensor_msgs/LaserScan.h"
 //#include "ISRobotCarMessages/laser.h"
 //#include "ISRobotCarMessages/LaserPoint.h"
 
@@ -20,7 +22,7 @@ class LaserIbeo
 {
 
     int sd;
-    std::string IP;
+    std::string ip;
     unsigned char    buf[4];
 
     unsigned int version; ///< Version Number of the protocol specification
@@ -39,10 +41,14 @@ class LaserIbeo
     unsigned int echo_pulse_width;
     int lixoz;
     int n;
-
+    double frequency;
 
     int coord_x;
     int coord_y;
+
+    ros::NodeHandle n_;
+    ros::NodeHandle pn_;
+    ros::Publisher laser_publisher;
 
 public:
 
@@ -55,7 +61,7 @@ public:
     bool Close();
     unsigned int getParam();
     double get(LaserRead scan[],/*ISRobotCarMessages::laser *laserstructure*/unsigned int num); // falta alterar a mensagem
-
+    void spin(void);
 };
 
 #endif  //_LASERIBEO_H

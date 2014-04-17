@@ -9,84 +9,79 @@
 
 
 #include "LaserIbeo.h"
-
 #include "fusion.h"
 
-LaserIbeo::LaserIbeo(std::string ip){
+LaserIbeo::LaserIbeo():pn_("~")
+{
+    version = 0;            ///< Version Number of the protocol specification
+    scanner_type = 0;       ///< Alasca XT is type 3
+    ecu_id = 0;
+    time_stamp = 0;         /// Timestamp when the scanner has measured to 0
+    start_angle_int = 0;    ///< raw as got from scanner
+    end_angle_int = 0;      ///< raw as got from scanner
+    start_angle = 0;        ///< in scanner coordinates
+    end_angle = 0;          ///< in scanner coordinates
+    scan_counter = 0;
+    num_points = 0;
+    n = 0;
 
-    IP=ip;
+    double cena = 12.5;
+    pn_.param<std::string>("ip_addr", ip, "10.152.10.247");
+    pn_.param("dist", distancia_STOP, 10000.0);
+    pn_.param("freq", frequency, 12.5);
 
-    version=0; ///< Version Number of the protocol specification
-    scanner_type=0; ///< Alasca XT is type 3
-    ecu_id=0;
-    time_stamp=0; /// Timestamp when the scanner has measured to 0
-    start_angle_int=0; ///< raw as got from scanner
-    end_angle_int=0; ///< raw as got from scanner
-    start_angle=0; ///< in scanner coordinates
-    end_angle=0; ///< in scanner coordinates
-    scan_counter=0;
-    num_points=0;
-    n=0;
-    distancia_STOP = 10000;
-}
-
-LaserIbeo::LaserIbeo(){
-
-    IP="10.152.10.247";
-    distancia_STOP = 10000;
-    version=0; ///< Version Number of the protocol specification
-    scanner_type=0; ///< Alasca XT is type 3
-    ecu_id=0;
-    time_stamp=0; /// Timestamp when the scanner has measured to 0
-    start_angle_int=0; ///< raw as got from scanner
-    end_angle_int=0; ///< raw as got from scanner
-    start_angle=0; ///< in scanner coordinates
-    end_angle=0; ///< in scanner coordinates
-    scan_counter=0;
-    num_points=0;
-    n=0;
-    distancia_STOP = 10000;
-}
-LaserIbeo::~LaserIbeo(){
-
-    IP="";
+    laser_publisher = n_.advertise<sensor_msgs::LaserScan>("/ibeo/scan", 10);
 
 }
 
+LaserIbeo::~LaserIbeo()
+{
+    ip="";
+}
 
-bool LaserIbeo::open() {
-    sd=ConnectLaser(IP.c_str());
-    if(sd!=-1){
+
+bool LaserIbeo::open()
+{
+    sd = ConnectLaser(ip.c_str());
+
+    if(sd!=-1)
+    {
         return true;
-    }else{
+    }
+    else
+    {
         return false;
     }
 }
 
-bool LaserIbeo::isOpen() {
-
-
-    if(sd<0){
+bool LaserIbeo::isOpen()
+{
+    if(sd<0)
+    {
         return false;
 
-    }else{
+    }
+    else
+    {
         return true;
     }
 }
 
-bool LaserIbeo::Close( ) {
+bool LaserIbeo::Close()
+{
     closesocket(sd);
     return true;
 }
 
 
 
-unsigned int LaserIbeo::getParam(){
+unsigned int LaserIbeo::getParam()
+{
     int data_type=0;
     unsigned int size;
-    while(data_type!=15){
 
-
+    while(data_type != 15)
+    {
         axt_skip(sd);
         n=recv(sd, buf, 4, 0);
 
@@ -123,8 +118,8 @@ unsigned int LaserIbeo::getParam(){
 
 }
 
-double LaserIbeo::get(LaserRead scan[],/*ISRobotCarMessages::laser *laserstructure,*/unsigned int num) {
-
+double LaserIbeo::get(LaserRead scan[],/*ISRobotCarMessages::laser *laserstructure,*/unsigned int num)
+{
     //ISRobotCarMessages::LaserPoint point;     //falta msg
     //laserstructure->number=num;
     //SCAN_IBEO scan[num_points];
@@ -152,3 +147,27 @@ double LaserIbeo::get(LaserRead scan[],/*ISRobotCarMessages::laser *laserstructu
 
 }
 
+void LaserIbeo::spin(void)
+{
+    ros::Rate loop_rate(frequency);
+
+    while(ros::ok())
+    {
+        unsigned int numberMeasurements = getParam();
+
+        LaserRead *lr;
+        lr=new LaserRead[numberMeasurements];
+
+        //ISRobotCarMessages::laser structurelaser;
+        sensor_msgs::LaserScan scan;
+        //unsigned int distance = get(lr/*,&structurelaser*/,numberMeasurements);
+
+        delete [] lr;
+
+        laser_publisher.publish(scan);
+
+        ros::spinOnce();
+
+        loop_rate.sleep();
+    }
+}
